@@ -4,9 +4,9 @@ import datetime
 import time
 import sys
 
-ACCESS_KEY = 'AKIAUXKJWWMEVXN63PPO'
-SECRET_KEY = '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'
-REGION_NAME = 'ap-southeast-1'
+ACCESS_KEY = ''
+SECRET_KEY = ''
+REGION_NAME = ''
 
 # asg_name = 'lab-asg'
 # asg_name = str(input())
