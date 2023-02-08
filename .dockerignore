@@ -1,0 +1,4 @@
+README.md
+.dockerignore
+Dockerfile
+update-asg-deployment.yml

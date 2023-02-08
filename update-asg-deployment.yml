@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: update-asg-deployment
+  labels:
+    app: update-asg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: update-asg
+  template:
+    metadata:
+      labels:
+        app: update-asg
+    spec:
+      containers:
+      - name: update-asg
+        image: phanminhlam/update-asg
