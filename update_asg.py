@@ -1,68 +1,64 @@
+from flask import Flask, request
 import boto3
 import json
 import datetime
 import time
-import sys
+import os
 
-ACCESS_KEY = ''
-SECRET_KEY = ''
-REGION_NAME = ''
+app = Flask(__name__)
 
-# asg_name = 'lab-asg'
-# asg_name = str(input())
-asg_name = str(sys.argv)
-
-def update_new_image(asg_name):
-    session = boto3.Session(
-        aws_access_key_id=ACCESS_KEY,
-        aws_secret_access_key=SECRET_KEY,
-        region_name=REGION_NAME,
-    )
-
-    # get autoscaling client
-    asg = session.client('autoscaling')
-    ec2 = session.client('ec2')
-    instance_ids = [] 
-
-    # get asg filter by asg name
-    asg_response = asg.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
-
-    # check exist asg
-    if not asg_response['AutoScalingGroups']:
-        return json.dumps({"result": "false" })
-
-    # get InstanceId in asg
-    for i in asg_response['AutoScalingGroups']:
-        for k in i['Instances']:
-            instance_ids.append(k['InstanceId'])
-
-    ec2_response = ec2.describe_instances(InstanceIds = instance_ids)   
-
-    # create new AMI from 1 instance in asg
-    timeStamp = time.time()
-    timeStampString = datetime.datetime.fromtimestamp(timeStamp).strftime('%Y-%m-%d-%H-%M-%S')
-    
-    newAMI_id = ec2.create_image(InstanceId=instance_ids[0], Name="New_AMI" + "_" + timeStampString)['ImageId']
-
-    # create new LC
-    newLC = asg_name + '_' + timeStampString
-
-    asg.create_launch_configuration(
-        InstanceId = instance_ids[0],
-        LaunchConfigurationName=newLC,
-        ImageId= newAMI_id
+@app.route("/asg/", methods=['GET'])
+def update_new_image():
+    asg_name = request.args.get('asg_name', None)
+    if not asg_name:
+        return json.dumps({"result": "false","error_msg": "Please Input asg_name" })
+    else: 
+        session = boto3.Session(
+            aws_access_key_id=os.getenv('ACCESS_KEY'),
+            aws_secret_access_key=os.getenv('SECRET_KEY'),
+            region_name=os.getenv('REGION_NAME'),
         )
-    # update new LC for asg
-    asg_response = asg.update_auto_scaling_group(AutoScalingGroupName = asg_name,LaunchConfigurationName = newLC)
+        asg = session.client('autoscaling')
+        ec2 = session.client('ec2')
+        instance_ids = [] 
 
-    nameLC = print(json.dumps({"result": "true","nameLC": newLC }))
+        # get asg filter by asg name
+        asg_response = asg.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
 
-    return nameLC 
+        # check exist asg
+        if not asg_response['AutoScalingGroups']:
+            return json.dumps({"result": "false","error_msg": "asg_name not exist" })
+        
+        timeStamp = time.time()
+        timeStampString = datetime.datetime.fromtimestamp(timeStamp).strftime('%Y-%m-%d-%H-%M-%S')
+        try: 
+            # get InstanceId in asg
+            for instance in asg_response['AutoScalingGroups']:
+                for seri_instance in instance['Instances']:
+                    instance_ids.append(seri_instance['InstanceId'])
 
-print(update_new_image(asg_name))
+            # create new AMI from 1 instance in asg
+            newAMI_id = ec2.create_image(InstanceId=instance_ids[0], Name="New_AMI" + "_" + timeStampString)['ImageId']
 
-
-
-
-
-
+        except Exception as Er_Create_Image:
+            print(Er_Create_Image)
+            return json.dumps({"result": "false","error_msg": "Error create Image" })
+            
+        try:   
+            # create new LC
+            newLC = asg_name + '_' + timeStampString
+            asg.create_launch_configuration(
+                InstanceId = instance_ids[0],
+                LaunchConfigurationName=newLC,
+                ImageId= newAMI_id
+                )
+            # update new LC for asg
+            asg_response = asg.update_auto_scaling_group(AutoScalingGroupName = asg_name,LaunchConfigurationName = newLC)
+            return json.dumps({"result": "true","nameLC": newLC })
+        
+        except Exception as Er_Create_LC:
+            print(Er_Create_LC)
+            return json.dumps({"result": "false","error_msg": "Error create LC " })
+        
+if __name__ == "__main__":
+    app.run(port=5555)
