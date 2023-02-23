@@ -1,4 +1,4 @@
-FROM python:3.8-slim-buster
+FROM python:3.9.2
 
 WORKDIR /app
 
@@ -8,5 +8,4 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 
-CMD [ "python3", "update_asg.py", "my-asg"] 
-# "my-asg" is asg_name
+CMD ["python3", "update_asg.py"] 
