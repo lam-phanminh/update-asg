@@ -1,5 +1,8 @@
 name: Docker Image CI
 
+env:
+  IMAGE_NAME: "update-asg"
+
 on:
   push:
     branches: [ "main" ]
@@ -9,8 +12,7 @@ on:
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: "update-asg"
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
