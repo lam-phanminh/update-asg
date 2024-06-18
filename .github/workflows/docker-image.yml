@@ -9,6 +9,8 @@ on:
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: "update-asg"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -18,7 +20,7 @@ jobs:
       run: echo "COMMIT_ID=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
 
     - name: Build the Docker image
-      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }} .
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }} .
 
     - name: Install Trivy
       run: |
@@ -31,13 +33,13 @@ jobs:
 
     - name: Scan Docker image with Trivy
       run: |
-        trivy image --quiet --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }}
-        # trivy image ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }}
+        trivy image --quiet --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}
+        # trivy image ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}
 
-    - name: Test funtion in docker image
+    - name: Test funtions in docker image
       run: |
         # Run the container in the background
-        docker run -d --name test-container ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }}
+        docker run -d --name test-container ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}
         sleep 5
         
         # Run tests against the running container
@@ -58,5 +60,5 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }}
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}
     
