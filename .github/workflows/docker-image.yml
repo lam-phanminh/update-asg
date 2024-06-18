@@ -12,8 +12,11 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    - name: Get short SHA
+      id: vars
+      run: echo "COMMIT_ID=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
     - name: Build the Docker image
-      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:$(date +%s) .
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }} .
     - name: Login dockerhub
       uses: docker/login-action@v2
       with:
@@ -24,5 +27,5 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:$(date +%s)
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }}
     
