@@ -13,7 +13,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag update-asg:$(date +%s)
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:$(date +%s) .
     - name: Login dockerhub
       uses: docker/login-action@v2
       with:
