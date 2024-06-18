@@ -3,8 +3,8 @@ name: Docker Image CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
 
 jobs:
   build_and_test:
@@ -12,11 +12,27 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
     - name: Get short SHA
       id: vars
       run: echo "COMMIT_ID=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
+
     - name: Build the Docker image
       run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }} .
+
+    - name: Install Trivy
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install -y trivy
+
+    - name: Scan Docker image with Trivy
+      run: |
+        trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }}
+
     - name: Test Docker image
       run: |
         # Run the container in the background
@@ -25,14 +41,17 @@ jobs:
         
         # Run tests against the running container
         docker exec test-container curl -f http://localhost:5000
-
+        
+        # Stop and remove the container
         docker stop test-container
         docker rm test-container
+
     - name: Login dockerhub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+
     - name: Push image to dockerhub
       uses: docker/build-push-action@v2
       with:
