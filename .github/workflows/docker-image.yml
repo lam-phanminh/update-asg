@@ -17,6 +17,17 @@ jobs:
       run: echo "COMMIT_ID=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
     - name: Build the Docker image
       run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }} .
+    - name: Test Docker image
+      run: |
+        # Run the container in the background
+        docker run -d --name test-container ${{ secrets.DOCKERHUB_USERNAME }}/update-asg:${{ env.COMMIT_ID }}
+        sleep 5
+        
+        # Run tests against the running container
+        docker exec test-container curl -f http://localhost:5000
+
+        docker stop test-container
+        docker rm test-container
     - name: Login dockerhub
       uses: docker/login-action@v2
       with:
